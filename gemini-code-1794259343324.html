@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>مولد الخطاطة الذهنية للرياضيات - مدارس الريادة</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Tajawal', sans-serif;
+    }
+
+    body {
+      background-color: #1e293b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      min-height: 100vh;
+    }
+
+    .top-controls {
+      background: #ffffff;
+      padding: 10px 22px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.35);
+      max-width: 1122px;
+      width: 95%;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .btn {
+      background-color: #152238;
+      color: white;
+      padding: 8px 18px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover { background-color: #0c1524; }
+    .btn-gold { background-color: #f59e0b; color: #0f172a; }
+    .btn-gold:hover { background-color: #d97706; }
+    .btn-outline { background-color: transparent; border: 2px solid #152238; color: #152238; }
+    .btn-outline:hover { background-color: #f1f5f9; }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;
+    }
+
+    .status-badge {
+      font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 20px; display: none;
+    }
+    .status-badge.loading { display: inline-block; background: #fef3c7; color: #92400e; }
+    .status-badge.success { display: inline-block; background: #d1fae5; color: #065f46; }
+    .status-badge.error { display: inline-block; background: #fee2e2; color: #991b1b; }
+
+    /* ورقة A4 بالعرض */
+    .page-a4 {
+      width: 297mm;
+      height: 210mm;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .header-wrapper {
+      background-color: #152238;
+      padding: 8px 30px 10px;
+      border-bottom: 3px solid #f59e0b;
+    }
+
+    .header-top {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+
+    .header-side .lbl { font-size: 11px; color: #cbd5e1; font-weight: 700; }
+    .header-side .val { font-size: 18px; color: #fbbf24; font-weight: 900; }
+    .header-center-title { font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: 0.5px; }
+
+    .header-meta-strip {
+      background-color: #0c1524; border-radius: 6px; padding: 5px 25px;
+      display: flex; justify-content: center; align-items: center; gap: 65px;
+    }
+
+    .meta-pill { font-size: 13.5px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 6px; }
+    .meta-pill span { color: #ffffff; font-weight: 800; padding: 0 4px; }
+
+    .canvas-area {
+      flex: 1; position: relative; width: 100%; background: #ffffff;
+    }
+
+    .arrows-svg {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none;
+    }
+
+    .center-lesson-card {
+      position: absolute; top: 48%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 350px; background: #ffffff;
+      border: 2.5px solid #152238; border-radius: 26px;
+      padding: 16px 18px 14px; text-align: center; z-index: 5;
+      box-shadow: 0 6px 20px rgba(21, 34, 56, 0.1);
+    }
+
+    .lesson-pill-badge {
+      display: inline-block; background: #152238; color: #fbbf24;
+      font-size: 12px; font-weight: 800; padding: 2px 18px; border-radius: 14px; margin-bottom: 8px;
+    }
+
+    .lesson-yellow-box {
+      background: #152238; border: 2px solid #f59e0b; border-radius: 10px;
+      padding: 8px 12px; color: #fbbf24; font-size: 17px; font-weight: 900; margin-bottom: 8px; line-height: 1.3;
+    }
+
+    .lesson-goal-text { font-size: 11px; font-weight: 700; color: #1e293b; line-height: 1.4; }
+
+    .stage-card {
+      position: absolute; width: 280px; background: #ffffff;
+      border: 2px solid #0ea5e9; border-radius: 14px; padding: 12px 14px 10px;
+      z-index: 5; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
+    }
+
+    .stage-num-circle {
+      position: absolute; top: -13px; background: #f59e0b; color: #ffffff;
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; border: 2px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    #card-01 .stage-num-circle, #card-02 .stage-num-circle { right: 18px; }
+    #card-03 .stage-num-circle { right: 35px; }
+    #card-04 .stage-num-circle, #card-05 .stage-num-circle { left: 35px; }
+
+    .stage-card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 8px;
+    }
+
+    .stage-title { font-size: 14px; font-weight: 900; color: #0f172a; }
+    .duration-badge { background: #fef3c7; color: #b45309; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+
+    .stage-list { list-style: none; font-size: 11px; color: #334155; line-height: 1.45; font-weight: 500; }
+    .stage-list li { position: relative; padding-right: 12px; margin-bottom: 5px; }
+    .stage-list.amber-dots li::before { content: "•"; color: #f59e0b; font-weight: 900; font-size: 15px; position: absolute; right: 0; top: -1px; }
+    .stage-list.blue-arrows li { padding-right: 14px; }
+    .stage-list.blue-arrows li::before { content: "◄"; color: #0284c7; font-size: 9px; position: absolute; right: 0; top: 2px; }
+    .stage-list strong { color: #0f172a; font-weight: 800; }
+
+    .model-subbox { border-radius: 8px; padding: 7px 9px; font-size: 10.8px; line-height: 1.4; margin-bottom: 6px; }
+    .model-subbox:last-child { margin-bottom: 0; }
+    .model-blue { background: #f0f9ff; border: 1px solid #bae6fd; color: #1e293b; }
+    .model-amber { background: #fffbeb; border: 1px solid #fde68a; color: #1e293b; }
+
+    .slates-footer-note {
+      background: #f1f5f9; border-radius: 6px; padding: 4px 8px;
+      text-align: center; font-size: 10px; font-weight: 700; color: #64748b; margin-top: 6px; font-style: italic;
+    }
+
+    #card-01 { top: 20px; right: 28px; }
+    #card-02 { bottom: 18px; right: 28px; width: 290px; }
+    #card-03 { bottom: 16px; left: 50%; transform: translateX(-50%); width: 285px; }
+    #card-04 { bottom: 18px; left: 28px; }
+    #card-05 { top: 20px; left: 28px; }
+
+    .footer-bar {
+      background-color: #152238; height: 44px;
+      display: flex; justify-content: space-between; align-items: center; padding: 0 30px; color: #ffffff;
+    }
+    .footer-block .sub { font-size: 10px; color: #94a3b8; font-weight: 600; }
+    .footer-block .main { font-size: 13.5px; color: #fbbf24; font-weight: 900; }
+    .footer-logo-center { display: flex; align-items: center; gap: 8px; }
+    .footer-logo-center .ar { font-size: 13px; font-weight: 900; color: #ffffff; }
+    .footer-logo-center .en { font-size: 8px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; }
+
+    .hidden-el { display: none !important; }
+
+    [contenteditable]:focus {
+      outline: 1.5px dashed #f59e0b;
+      background-color: rgba(245, 158, 11, 0.08);
+      border-radius: 3px;
+    }
+
+    @media print {
+      body { background: transparent !important; padding: 0 !important; }
+      .top-controls { display: none !important; }
+      .page-a4 { box-shadow: none !important; margin: 0 !important; page-break-after: avoid; page-break-inside: avoid; }
+      @page { size: A4 landscape; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-controls">
+    <div class="file-input-wrapper">
+      <button class="btn btn-gold">📁 تحميل الدرس من الحاسوب (.pptx)</button>
+      <input type="file" id="pptxFileInput" accept=".pptx">
+    </div>
+
+    <button class="btn btn-outline" onclick="toggleLogo()">إخفاء / إظهار شعار مدرستنا</button>
+    <button class="btn" onclick="window.print()">🖨️ طباعة الخطاطة (A4 Landscape)</button>
+
+    <span id="statusIndicator" class="status-badge"></span>
+  </div>
+
+  <div class="page-a4">
+    
+    <header class="header-wrapper">
+      <div class="header-top">
+        <div class="header-side" style="text-align: right;">
+          <div class="lbl">المستوى</div>
+          <div class="val" contenteditable="true" id="uiLevel">السادس ابتدائي</div>
+        </div>
+        <div class="header-center-title">خريطة ذهنية</div>
+        <div class="header-side" style="text-align: left;">
+          <div class="lbl">مادة</div>
+          <div class="val" contenteditable="true" id="uiSubject">الرياضيات</div>
+        </div>
+      </div>
+
+      <div class="header-meta-strip">
+        <div class="meta-pill">المرحلة : <span contenteditable="true" id="uiPeriod">الأولى</span></div>
+        <div class="meta-pill">الأسبوع : <span contenteditable="true" id="uiWeek">الأول</span></div>
+        <div class="meta-pill">الحصة : <span contenteditable="true" id="uiSession">1</span></div>
+      </div>
+    </header>
+
+    <main class="canvas-area">
+      
+      <svg class="arrows-svg" viewBox="0 0 1122 570" preserveAspectRatio="none">
+        <defs>
+          <marker id="navyArrow" markerWidth="8" markerHeight="8" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#152238" />
+          </marker>
+        </defs>
+        <path d="M 685,205 L 755,145" stroke="#152238" stroke-width="2.2" fill="none" marker-end="url(#navyArrow)" />
+        <path d="M 680,320 L 765,375" stroke="#152238" stroke-width="2.2" fill="none" marker-end="url(#navyArrow)" />
+        <path d="M 525,335 L 490,395" stroke="#152238" stroke-width="2.2" fill="none" marker-end="url(#navyArrow)" />
+        <path d="M 405,315 L 300,382" stroke="#152238" stroke-width="2.2" fill="none" marker-end="url(#navyArrow)" />
+        <path d="M 405,210 L 315,145" stroke="#152238" stroke-width="2.2" fill="none" marker-end="url(#navyArrow)" />
+      </svg>
+
+      <div class="center-lesson-card">
+        <div class="lesson-pill-badge">الدرس</div>
+        <div class="lesson-yellow-box" contenteditable="true" id="uiLessonTitle">
+          فصل الملايين: قراءة وكتابة
+        </div>
+        <div class="lesson-goal-text" contenteditable="true" id="uiLessonGoal">
+          قراءة وكتابة أعداد كبيرة من فئة الملايين (بنسبة تحكم 80% على الأقل).
+        </div>
+      </div>
+
+      <div class="stage-card" id="card-01">
+        <div class="stage-num-circle">01</div>
+        <div class="stage-card-header">
+          <span class="stage-title">افتتاح الحصة</span>
+          <span class="duration-badge" contenteditable="true">15 دقيقة</span>
+        </div>
+        <ul class="stage-list amber-dots" id="uiList01">
+          <li contenteditable="true"><strong>الحساب الذهني:</strong> كراسة الحساب الذهني ص 3 (إنجاز سريع وتصحيح فوري).</li>
+        </ul>
+      </div>
+
+      <div class="stage-card" id="card-02">
+        <div class="stage-num-circle">02</div>
+        <div class="stage-card-header">
+          <span class="stage-title">نمذجة</span>
+          <span class="duration-badge" contenteditable="true">15 دقيقة</span>
+        </div>
+        <div>
+          <div class="model-subbox model-blue" contenteditable="true" id="uiModel1">
+            <strong>نمذجة 1:</strong> قراءة أعداد من فئة الملايين وكتابتها بالحروف.
+          </div>
+          <div class="model-subbox model-amber" contenteditable="true" id="uiModel2">
+            <strong>نمذجة 2:</strong> كتابة أعداد من فئة الملايين بالأرقام.
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-card" id="card-03">
+        <div class="stage-num-circle">03</div>
+        <div class="stage-card-header">
+          <span class="stage-title">ممارسة موجهة</span>
+          <span class="duration-badge" contenteditable="true">20 دقيقة</span>
+        </div>
+        <ul class="stage-list blue-arrows" id="uiList03">
+          <li contenteditable="true"><strong>النشاط 1:</strong> تحديد فصول العدد وقراءته بالحروف على الألواح.</li>
+          <li contenteditable="true"><strong>النشاط 2:</strong> كتابة أعداد كبرى بالأرقام بوضع النقط في المنازل.</li>
+        </ul>
+        <div class="slates-footer-note" contenteditable="true">
+          "ارفعوا الألواح - تصحيح فوري وتبرير فردي على السبورة"
+        </div>
+      </div>
+
+      <div class="stage-card" id="card-04">
+        <div class="stage-num-circle">04</div>
+        <div class="stage-card-header">
+          <span class="stage-title">ممارسة مستقلة</span>
+          <span class="duration-badge" contenteditable="true">15 دقيقة</span>
+        </div>
+        <ul class="stage-list amber-dots">
+          <li contenteditable="true"><strong>العمل على الكراسة:</strong> أنجز بمفردي بكراسة المتعلم (الصفحة <span id="uiWorkbookPage">9</span>).</li>
+          <li contenteditable="true"><strong>دور الأستاذ:</strong> المرور الفعّال بين الصفوف لمساعدة المتعثرين ورصد نسبة التحكم.</li>
+          <li contenteditable="true"><strong>التصحيح:</strong> تصحيح جماعي فوري ومناقشة الأخطاء الشائعة.</li>
+        </ul>
+      </div>
+
+      <div class="stage-card" id="card-05">
+        <div class="stage-num-circle">05</div>
+        <div class="stage-card-header">
+          <span class="stage-title">اختتام الحصة</span>
+          <span class="duration-badge" contenteditable="true">5 دقائق</span>
+        </div>
+        <ul class="stage-list amber-dots">
+          <li contenteditable="true"><strong>الواجب المنزلي:</strong> إنجاز الأنشطة المتبقية على كراسة التلميذ في المنزل.</li>
+          <li contenteditable="true"><strong>تقويم الهدف:</strong> تقدير نسبة التحكم في الهدف (≥ 80%) وتسجيلها بمذكرة الأستاذ(ة).</li>
+          <li contenteditable="true"><strong>الحصة القادمة:</strong> تصحيح الأنشطة المنزلية والتثبيت التفاعلي.</li>
+        </ul>
+      </div>
+
+    </main>
+
+    <footer class="footer-bar">
+      <div class="footer-block" style="text-align: right;">
+        <div class="sub">إعداد :</div>
+        <div class="main" contenteditable="true">ذ. معتز المرابط</div>
+      </div>
+
+      <div class="footer-logo-center" id="madrastnaFooterLogo">
+        <div style="text-align: right; line-height: 1.05;">
+          <div class="ar">مدرستنا</div>
+          <div class="en">MADRASTNA</div>
+        </div>
+      </div>
+
+      <div class="footer-block" style="text-align: left;">
+        <div class="sub">مدرسة :</div>
+        <div class="main" contenteditable="true">أهل سيدي لحسن الجماعاتية</div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    function setStatus(text, type) {
+      const el = document.getElementById('statusIndicator');
+      el.textContent = text;
+      el.className = 'status-badge ' + type;
+    }
+
+    function toggleLogo() {
+      document.getElementById('madrastnaFooterLogo').classList.toggle('hidden-el');
+    }
+
+    // التحليل المحلي الفوري لملف PPTX (بدون أخطاء CORS أو مشاكل الـ API)
+    document.getElementById('pptxFileInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      setStatus('جاري تحليل شرائح العرض التقديمي...', 'loading');
+
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const slideEntries = [];
+
+        zip.forEach((relPath, entry) => {
+          const m = relPath.match(/^ppt\/slides\/slide(\d+)\.xml$/i);
+          if (m) slideEntries.push({ num: parseInt(m[1], 10), entry });
+        });
+
+        slideEntries.sort((a, b) => a.num - b.num);
+
+        const slidesData = [];
+        for (const item of slideEntries) {
+          const xmlStr = await item.entry.async('text');
+          const xmlDoc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+          const tNodes = xmlDoc.getElementsByTagName('a:t');
+          const texts = [];
+          for (let i = 0; i < tNodes.length; i++) {
+            const val = tNodes[i].textContent.trim();
+            if (val) texts.push(val);
+          }
+          if (texts.length > 0) {
+            slidesData.push({ slideNum: item.num, texts });
+          }
+        }
+
+        const res = extractStructureFromSlides(file.name, slidesData);
+        applyLessonData(res);
+
+        setStatus('تم استخراج وتعبئة بيانات الحصة بنجاح تام!', 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus('تعذر قراءة الملف، تأكد من أنه بصيغة .pptx', 'error');
+      }
+    });
+
+    function extractStructureFromSlides(fileName, slides) {
+      const result = {
+        level: 'السادس ابتدائي',
+        period: 'الأولى',
+        week: 'الأول',
+        session: '1',
+        lessonTitle: '',
+        lessonGoal: '',
+        mentalMathPage: '3',
+        hasWarmup: false,
+        warmupText: '',
+        model1Title: '',
+        model2Title: '',
+        hasModel2: false,
+        guidedActivities: [],
+        workbookPage: '9'
+      };
+
+      const upperName = fileName.toUpperCase();
+      const levelMatch = upperName.match(/_N(\d)_/);
+      if (levelMatch) {
+        const lvlMap = { '1': 'الأول ابتدائي', '2': 'الثاني ابتدائي', '3': 'الثالث ابتدائي', '4': 'الرابع ابتدائي', '5': 'الخامس ابتدائي', '6': 'السادس ابتدائي' };
+        if (lvlMap[levelMatch[1]]) result.level = lvlMap[levelMatch[1]];
+      }
+
+      const periodMatch = upperName.match(/_P(\d)_/);
+      if (periodMatch) {
+        const pMap = { '1': 'الأولى', '2': 'الثانية', '3': 'الثالثة', '4': 'الرابعة' };
+        if (pMap[periodMatch[1]]) result.period = pMap[periodMatch[1]];
+      }
+
+      const weekMatch = upperName.match(/_SEM(\d+)_/);
+      if (weekMatch) {
+        const wMap = { '1': 'الأول', '2': 'الثاني', '3': 'الثالث', '4': 'الرابع', '5': 'الخامس', '6': 'السادس' };
+        result.week = wMap[weekMatch[1]] || weekMatch[1];
+      }
+
+      const sessionMatch = upperName.match(/_S(\d+)/);
+      if (sessionMatch) {
+        result.session = sessionMatch[1];
+      }
+
+      const warmupNums = [];
+      const guidedMap = new Map();
+
+      for (const s of slides) {
+        const joined = s.texts.join(' | ');
+
+        if (joined.includes('درس اليوم')) {
+          const candidates = s.texts.filter(t =>
+            !t.includes('درس اليوم') && !t.includes('خاص بالأستاذ') && !t.match(/^الدرس\s*\d+$/) && t.length > 4
+          );
+          if (candidates.length > 0) result.lessonTitle = candidates[candidates.length - 1];
+        }
+
+        if (joined.includes('عند نهاية الدرس') || joined.includes('قادرين على')) {
+          const goalParts = s.texts.filter(t => !t.includes('خاص بالأستاذ') && !t.includes('عند نهاية الدرس') && !t.includes('على الأقل'));
+          if (goalParts.length > 0) {
+            result.lessonGoal = goalParts.join(' ').replace(/\s+/g, ' ').trim() + ' (بنسبة تحكم 80% على الأقل).';
+          }
+        }
+
+        if (joined.includes('كراسات الحساب الذهني') || joined.includes('كراسة الحساب الذهني')) {
+          const pm = joined.match(/صفحة\s*(\d+)/);
+          if (pm) result.mentalMathPage = pm[1];
+        }
+
+        if (joined.includes('أنشطة تمهيدية')) result.hasWarmup = true;
+
+        if (joined.includes('نمذجة 1') || (joined.includes('نمذجة') && !joined.includes('نمذجة 2') && !result.model1Title)) {
+          const m1 = s.texts.filter(t => !t.includes('نمذجة') && !t.includes('خاص بالأستاذ') && !t.includes('عرض فيديو') && !/^\d+$/.test(t) && t.length > 6);
+          if (m1.length > 0 && !result.model1Title) result.model1Title = m1[0];
+        }
+
+        if (joined.includes('نمذجة 2')) {
+          result.hasModel2 = true;
+          const m2 = s.texts.filter(t => !t.includes('نمذجة') && !t.includes('خاص بالأستاذ') && !t.includes('عرض فيديو') && !/^\d+$/.test(t) && t.length > 6);
+          if (m2.length > 0 && !result.model2Title) result.model2Title = m2[0];
+        }
+
+        if (joined.includes('ممارسة موجهة') || joined.includes('الممارسة الموجهة')) {
+          const actMatches = joined.match(/النشاط\s*(\d+)/g);
+          if (actMatches) {
+            actMatches.forEach(actLabel => {
+              const cleanLabel = actLabel.replace(/\s+/g, ' ').trim();
+              if (!guidedMap.has(cleanLabel)) guidedMap.set(cleanLabel, []);
+              const tasks = s.texts.filter(t => !t.includes('ممارسة') && !t.includes('النشاط') && !t.includes('خاص بالأستاذ') && !t.includes('ارفعوا الألواح') && !t.includes('صححوا') && !/^\d+$/.test(t.trim()) && t.length > 4);
+              const existing = guidedMap.get(cleanLabel);
+              tasks.forEach(tk => { if (!existing.includes(tk) && existing.length < 2) existing.push(tk); });
+            });
+          }
+        }
+
+        if (joined.includes('ممارسة مستقلة') || joined.includes('أنجز بمفردي')) {
+          const wp = joined.match(/الصفحة\s*\.?\s*(\d+)/) || joined.match(/صفحة\s*\.?\s*(\d+)/);
+          if (wp) result.workbookPage = wp[1];
+        }
+      }
+
+      if (guidedMap.size > 0) {
+        guidedMap.forEach((tasks, actLabel) => {
+          const desc = tasks.length > 0 ? tasks.join(' - ') : 'تطبيق موجه لخطوات النمذجة.';
+          result.guidedActivities.push({ label: actLabel, desc });
+        });
+      } else {
+        result.guidedActivities = [
+          { label: 'النشاط 1', desc: result.model1Title ? `تطبيق موجه حول ${result.model1Title}.` : 'تطبيق موجه للنشاط الأول.' },
+          { label: 'النشاط 2', desc: result.model2Title ? `تطبيق موجه حول ${result.model2Title}.` : 'تطبيق موجه للنشاط الثاني.' }
+        ];
+      }
+
+      return result;
+    }
+
+    function applyLessonData(d) {
+      if (d.level) document.getElementById('uiLevel').textContent = d.level;
+      if (d.period) document.getElementById('uiPeriod').textContent = d.period;
+      if (d.week) document.getElementById('uiWeek').textContent = d.week;
+      if (d.session) document.getElementById('uiSession').textContent = d.session;
+      if (d.lessonTitle) document.getElementById('uiLessonTitle').textContent = d.lessonTitle;
+      if (d.lessonGoal) document.getElementById('uiLessonGoal').textContent = d.lessonGoal;
+
+      const list01 = document.getElementById('uiList01');
+      list01.innerHTML = '';
+      const liM = document.createElement('li');
+      liM.contentEditable = "true";
+      liM.innerHTML = `<strong>الحساب الذهني:</strong> كراسة الحساب الذهني ص ${d.mentalMathPage || '3'} (إنجاز سريع وتصحيح فوري).`;
+      list01.appendChild(liM);
+
+      if (d.hasWarmup) {
+        const liW = document.createElement('li');
+        liW.contentEditable = "true";
+        liW.innerHTML = `<strong>أنشطة تمهيدية:</strong> مراجعة المكتسبات السابقة على الألواح.`;
+        list01.appendChild(liW);
+      }
+
+      const m1 = document.getElementById('uiModel1');
+      const m2 = document.getElementById('uiModel2');
+      if (d.model1Title) m1.innerHTML = `<strong>نمذجة 1:</strong> ${d.model1Title}`;
+      if (d.hasModel2 && d.model2Title) {
+        m2.style.display = 'block';
+        m2.innerHTML = `<strong>نمذجة 2:</strong> ${d.model2Title}`;
+      } else {
+        m2.style.display = 'none';
+      }
+
+      if (d.guidedActivities && d.guidedActivities.length > 0) {
+        const list03 = document.getElementById('uiList03');
+        list03.innerHTML = '';
+        d.guidedActivities.forEach(act => {
+          const li = document.createElement('li');
+          li.contentEditable = "true";
+          li.innerHTML = `<strong>${act.label}:</strong> ${act.desc}`;
+          list03.appendChild(li);
+        });
+      }
+
+      if (d.workbookPage) {
+        document.getElementById('uiWorkbookPage').textContent = d.workbookPage;
+      }
+    }
+  </script>
+</body>
+</html>
